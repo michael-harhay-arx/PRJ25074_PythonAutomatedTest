@@ -12,11 +12,12 @@ def nest2_cylinder_move():
   plc.Write('Program:MainProgram.Nest2Cylinder.PB', not current.Value)
 
 def simulate_cts_test():
-  sleep(1.0)
-  nest1_cylinder_move()
-  sleep(3.0)
-  nest1_cylinder_move()
-  sleep(1.0)
+  sleep(2.0)
+  # sleep(8.0)
+  # nest1_cylinder_move()
+  # sleep(3.0)
+  # nest1_cylinder_move()
+  # sleep(8.0)
 
 
 # Robot functions
@@ -31,15 +32,19 @@ def robot_grip():
 def robot_move(target):
   plc.Write('Program:MainProgram.RobotInputs.iW_TargetPosition', target, datatype=199)
   
+  sleep(0.3)
+
   while True:
     inPos = plc.Read('Program:MainProgram.RobotOutputs.ob_InPos', datatype=193)
     if inPos.Value == 1:
-      return True
+      break
     sleep(0.1)
+
+  sleep(0.3)
 
 
 # Main test function
-def start_test(self):
+def start_test():
 
   # Init
   print("\nStatus: Initializing")
@@ -47,8 +52,9 @@ def start_test(self):
   sleep(1.0)
   plc.Write('Program:MainProgram.RobotInputs.ib_Reset', 0, datatype=193)
   robot_ungrip()
+  plc.Write('Program:MainProgram.RobotInputs.ib_Start', 1, datatype=193)
   robot_move(0)
-  
+
   # BARCODE -> FAIL
   print("\nSequence: BARCODE -> FAIL") 
   plc.Write('Program:MainProgram.RobotInputs.ib_Start', 1, datatype=193)
@@ -87,6 +93,40 @@ def start_test(self):
   robot_move(1)  # BARCODE
   simulate_cts_test()
   robot_move(2)  # NEST1
+  robot_grip()
+
+  robot_move(4)  # PASS ----> FIX
+  robot_ungrip()
+  robot_move(0)  # LOADING
+
+  # NEST2 -> FAIL
+  print("\nSequence: NEST1 -> FAIL") 
+  robot_move(0)
+  robot_grip()
+  robot_move(1)  # BARCODE
+
+  robot_move(3)  # NEST2
+  robot_ungrip()
+  robot_move(1)  # BARCODE
+  simulate_cts_test()
+  robot_move(3)  # NEST2
+  robot_grip()
+
+  robot_move(5)  # FAIL
+  robot_ungrip()
+  robot_move(0)  # LOADING
+
+  # NEST1 -> PASS
+  print("\nSequence: NEST1 -> PASS") 
+  robot_move(0)
+  robot_grip()
+  robot_move(1)  # BARCODE
+
+  robot_move(3)  # NEST2
+  robot_ungrip()
+  robot_move(1)  # BARCODE
+  simulate_cts_test()
+  robot_move(3)  # NEST2
   robot_grip()
 
   robot_move(4)  # PASS
