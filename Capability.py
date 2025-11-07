@@ -6,11 +6,15 @@ from pylogix import PLC
 
 # Config (Update before running)
 # 1) set IP, 2) import correct files, 3) updates test dictionary to include all tests
-plcIP = '192.168.250.1'
+plcIP = '192.168.251.1'
 import BarcodeTest, NestEngageTest, PathTest, PositionTest
 testsDict = {1 : "PositionTest",
-             2 : "PathTest"}
+             2 : "PathTest",
+             3 : "NestEngageTest",
+             4 : "BarcodeTest"}
 
+plc = PLC()
+plc.IPAddress = plcIP
 
 # CTS functions
 def nest1_cylinder_move():
@@ -26,7 +30,7 @@ def simulate_cts1_test():
   nest1_cylinder_move()
   sleep(3.0)
   nest1_cylinder_move()
-  sleep(1.5)
+  sleep(1.0)
 
 def simulate_cts2_test():
   sleep(1.5)
@@ -121,9 +125,8 @@ if __name__ == '__main__':
   print("\nNow running: " + testName)
 
   # Initialize PLC
-  print("Initializing...")
-  plc = PLC()
-  plc.IPAddress = plcIP
+  #plc = PLC()
+  #plc.IPAddress = plcIP
   initialize_station()
 
   # Start test
