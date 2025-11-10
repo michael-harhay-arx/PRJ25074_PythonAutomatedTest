@@ -2,12 +2,13 @@ import sys
 import importlib
 from time import sleep
 from pylogix import PLC
+from datetime import datetime
 
 
 # Config (Update before running)
 # 1) set IP, 2) import correct files, 3) updates test dictionary to include all tests
 plcIP = '192.168.251.1'
-import BarcodeTest, NestEngageTest, PathTest, PositionTest
+import PositionTest, PathTest, NestEngageTest, BarcodeTest
 testsDict = {1 : "PositionTest",
              2 : "PathTest",
              3 : "NestEngageTest",
@@ -16,27 +17,25 @@ testsDict = {1 : "PositionTest",
 plc = PLC()
 plc.IPAddress = plcIP
 
+
 # CTS functions
-def nest1_cylinder_move():
-  current = plc.Read('Program:MainProgram.Nest1Cylinder.PB')
-  plc.Write('Program:MainProgram.Nest1Cylinder.PB', not current.Value)
+def nest_cylinder_move(nestIndex):
+  current = plc.Read(f'Program:MainProgram.Nest{nestIndex}Cylinder.PB', datatype=193)
+  plc.Write(f'Program:MainProgram.Nest{nestIndex}Cylinder.PB', not current.Value, datatype=193)
 
-def nest2_cylinder_move():
-  current = plc.Read('Program:MainProgram.Nest2Cylinder.PB')
-  plc.Write('Program:MainProgram.Nest2Cylinder.PB', not current.Value)
+  fault = plc.Read(f'Program:MainProgram.Nest{nestIndex}Cylinder.Faulted', datatype=193)
 
-def simulate_cts1_test():
+  with open("CylinderLog.txt", "a") as file:
+    if fault:
+      file.write(f"Nest {nestIndex}: Fault occurred.\n")
+    else:
+      file.write(f"Nest {nestIndex}: Movement successful.\n")
+
+def simulate_cts_test(nestIndex):
   sleep(1.5)
-  nest1_cylinder_move()
+  nest_cylinder_move(nestIndex)
   sleep(3.0)
-  nest1_cylinder_move()
-  sleep(1.0)
-
-def simulate_cts2_test():
-  sleep(1.5)
-  nest2_cylinder_move()
-  sleep(3.0)
-  nest2_cylinder_move()
+  nest_cylinder_move(nestIndex)
   sleep(1.5)
 
 
@@ -70,6 +69,10 @@ def scan_barcode():
     scannerDone = plc.Read('Program:MainProgram.Barcode_Read_Complete', datatype=193)
 
     if scannerDone:
+      barcode = plc.Read('Program:MainProgram.Barcode_Result_Data', datatype=194)
+      with open("BarcodeLog.txt", "a") as file:
+        file.write("Barcode scanned: " + str(barcode))
+
       break
     
   plc.Write('Program:MainProgram.Barcode_TriggerInput', 0, datatype=193)
@@ -125,8 +128,6 @@ if __name__ == '__main__':
   print("\nNow running: " + testName)
 
   # Initialize PLC
-  #plc = PLC()
-  #plc.IPAddress = plcIP
   initialize_station()
 
   # Start test
