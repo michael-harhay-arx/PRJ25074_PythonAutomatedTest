@@ -8,35 +8,51 @@ from datetime import datetime
 # Config (Update before running)
 # 1) set IP, 2) import correct files, 3) updates test dictionary to include all tests
 plcIP = '192.168.251.1'
-import PositionTest, PathTest, NestEngageTest, BarcodeTest
+import PositionTest, PathTest, NestEngageTest, BarcodeTest, ConveyorTest
 testsDict = {1 : "PositionTest",
              2 : "PathTest",
              3 : "NestEngageTest",
-             4 : "BarcodeTest"}
+             4 : "BarcodeTest",
+             5 : "ConveyorTest"}
 
 plc = PLC()
 plc.IPAddress = plcIP
 
 
 # CTS functions
-def nest_cylinder_move(nestIndex):
-  current = plc.Read(f'Program:MainProgram.Nest{nestIndex}Cylinder.PB', datatype=193)
-  plc.Write(f'Program:MainProgram.Nest{nestIndex}Cylinder.PB', not current.Value, datatype=193)
+def nest_cylinder_move(nestIndex, extended, logName):
+  plc.Write(f'Program:MainProgram.Nest{nestIndex}Cylinder.PB', extended, datatype=193)
+  sleep(1)
 
-  fault = plc.Read(f'Program:MainProgram.Nest{nestIndex}Cylinder.Faulted', datatype=193)
+  # Check that sensors are correctly triggered
+  fault = 0
+  sensorTop = plc.Read(f'Local:3:I.Pt0{3+2*(nestIndex - 1)}.Data', datatype=193)
+  sensorBottom = plc.Read(f'Local:3:I.Pt0{4+2*(nestIndex - 1)}.Data', datatype=193)
+  print("sensortop: " + str(sensorTop.Value))
+  print("sensorBot: " + str(sensorBottom.Value))
 
-  with open("CylinderLog.txt", "a") as file:
-    if fault:
-      file.write(f"Nest {nestIndex}: Fault occurred.\n")
+  if extended == 0 and (sensorTop.Value != 1 or sensorBottom.Value != 0):
+    fault = 1
+  if extended == 1 and (sensorTop.Value != 0 or sensorBottom.Value != 1):
+    fault = 1
+
+  if extended == 0:
+    direction = "up"
+  else:
+    direction = "down"
+
+  with open(logName, "a") as file:
+    if fault != 0:
+      file.write(f"Nest {nestIndex}: Fault occurred moving {direction}.\n")
     else:
-      file.write(f"Nest {nestIndex}: Movement successful.\n")
+      file.write(f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}: Nest {nestIndex}: Movement {direction} successful.\n")
 
-def simulate_cts_test(nestIndex):
-  sleep(1.5)
-  nest_cylinder_move(nestIndex)
-  sleep(3.0)
-  nest_cylinder_move(nestIndex)
-  sleep(1.5)
+def simulate_cts_test(nestIndex, logName):
+  sleep(1.0)
+  nest_cylinder_move(nestIndex, 1, logName)
+  sleep(2.0)
+  nest_cylinder_move(nestIndex, 0, logName)
+  sleep(1.0)
 
 
 # Robot functions
