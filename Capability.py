@@ -1,3 +1,4 @@
+from copyreg import clear_extension_cache
 import sys
 import importlib
 from time import sleep
@@ -78,16 +79,19 @@ def robot_move(target):
 
 
 # Barcode functions
-def scan_barcode():
+def scan_barcode(logName):
+  sleep(1)
   plc.Write('Program:MainProgram.Barcode_TriggerInput', 1, datatype=193)
 
   while True:
     scannerDone = plc.Read('Program:MainProgram.Barcode_Read_Complete', datatype=193)
 
-    if scannerDone:
+    if scannerDone.Value == 1:
       barcode = plc.Read('Program:MainProgram.Barcode_Result_Data', datatype=194)
-      with open("BarcodeLog.txt", "a") as file:
-        file.write("Barcode scanned: " + str(barcode))
+      with open(logName, "a") as file:
+        barcode_bytes = barcode.Value
+        barcode_str = ''.join(chr(b) for b in barcode_bytes if b > 0 and b < 127)
+        file.write(f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}: Barcode scanned: {barcode_str}\n")
 
       break
     
@@ -95,6 +99,59 @@ def scan_barcode():
   plc.Write('Program:MainProgram.Barcode_Read_Complete_Clear', 1, datatype=193)
   sleep(0.5)
   plc.Write('Program:MainProgram.Barcode_Read_Complete_Clear', 0, datatype=193)
+
+
+# Sensor functions
+def sensor_wait(sensorIndex, sensorHigh, logName):
+  sleep(1)
+  sensorStatus = plc.Read(f'I_OP220_N3_DUT_PRE_NEST_{sensorIndex}', datatype=193)
+
+  if sensorHigh == 0:
+    word = "low"
+  else:
+    word = "high"
+
+  with open(logName, "a")as file:
+    file.write(f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}: Waiting for sensor status to change to {word}... ")
+    while sensorHigh != sensorStatus.Value:
+      continue
+    file.write("Sensor status changed.\n")
+
+
+# Conveyor function
+def conveyor_logic(logName):
+
+  with open(logName, "a") as file:
+    # Wait for DUT to be dropped
+    conveyorLoaded = plc.Read('I_OP220_N3_CONVEYOR_LOAD', datatype=193)
+    while conveyorLoaded.Value == 1:
+      print(str(conveyorLoaded.Value))
+      conveyorLoaded = plc.Read('I_OP220_N3_CONVEYOR_LOAD', datatype=193)
+      sleep(0.1)
+
+    file.write(f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}: DUT dropped on conveyor.\n")
+
+    # Check for conveyor full
+    conveyorFull = plc.Read('I_OP220_N3_CONVEYOR_UNLOAD', datatype=193)
+    while conveyorFull.Value != 1:
+      file.write(f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}: Conveyor full. Operator unloading DUTs...\n")
+      input("Conveyor full, please unload and press Enter to continue...")
+      conveyorFull = plc.Read('I_OP220_N3_CONVEYOR_UNLOAD', datatype=193)
+
+    file.write(f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}: Conveyor not full, moving belt to next index...\n")
+
+    # Move conveyor until next cleat position reached
+    plc.Write('O_OP220_N5_CONV_FWD', 1, datatype=193)
+    sleep(0.5)
+
+    cleatInPosition = plc.Read('I_OP220_N3_CONVEYOR_CLEAT', datatype=193)
+    while cleatInPosition.Value != 1:
+      sleep(0.1)
+      cleatInPosition = plc.Read('I_OP220_N3_CONVEYOR_CLEAT', datatype=193)
+
+    plc.Write('O_OP220_N5_CONV_FWD', 0, datatype=193)
+
+    file.write(f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}: Next belt index reached. Waiting for next DUT...\n")
 
 
 # Initialization function
