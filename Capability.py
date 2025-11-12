@@ -32,10 +32,15 @@ def nest_cylinder_move(nestIndex, extended, logName):
   print("sensortop: " + str(sensorTop.Value))
   print("sensorBot: " + str(sensorBottom.Value))
 
-  if extended == 0 and (sensorTop.Value != 1 or sensorBottom.Value != 0):
-    fault = 1
-  if extended == 1 and (sensorTop.Value != 0 or sensorBottom.Value != 1):
-    fault = 1
+  with open(logName, "a") as file:
+    if extended == 0 and (sensorTop.Value != 1 or sensorBottom.Value != 0):
+      fault = 1
+      file.write(f"Fault occurred!\nsensorTop should be 1, is: {sensorTop.Value}\nsensorBottom should be 0, is: {sensorBottom.Value}\n")
+      print(f"Fault occurred!\nsensorTop should be 1, is: {sensorTop.Value}\nsensorBottom should be 0, is: {sensorBottom.Value}\n")
+    if extended == 1 and (sensorTop.Value != 0 or sensorBottom.Value != 1):
+      fault = 1
+      file.write(f"Fault occurred!\nsensorTop should be 0, is: {sensorTop.Value}\nsensorBottom should be 1, is: {sensorBottom.Value}\n")
+      print(f"Fault occurred!\nsensorTop should be 0, is: {sensorTop.Value}\nsensorBottom should be 1, is: {sensorBottom.Value}\n")
 
   if extended == 0:
     direction = "up"
@@ -44,7 +49,7 @@ def nest_cylinder_move(nestIndex, extended, logName):
 
   with open(logName, "a") as file:
     if fault != 0:
-      file.write(f"Nest {nestIndex}: Fault occurred moving {direction}.\n")
+      file.write(f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}: Nest {nestIndex}: Fault occurred moving {direction}.\n")
     else:
       file.write(f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}: Nest {nestIndex}: Movement {direction} successful.\n")
 
@@ -124,7 +129,7 @@ def conveyor_logic(logName):
   with open(logName, "a") as file:
     # Wait for DUT to be dropped
     conveyorLoaded = plc.Read('I_OP220_N3_CONVEYOR_LOAD', datatype=193)
-    while conveyorLoaded.Value == 1:
+    while conveyorLoaded.Value != 1:
       print(str(conveyorLoaded.Value))
       conveyorLoaded = plc.Read('I_OP220_N3_CONVEYOR_LOAD', datatype=193)
       sleep(0.1)
@@ -133,7 +138,7 @@ def conveyor_logic(logName):
 
     # Check for conveyor full
     conveyorFull = plc.Read('I_OP220_N3_CONVEYOR_UNLOAD', datatype=193)
-    while conveyorFull.Value != 1:
+    while conveyorFull.Value == 1:
       file.write(f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}: Conveyor full. Operator unloading DUTs...\n")
       input("Conveyor full, please unload and press Enter to continue...")
       conveyorFull = plc.Read('I_OP220_N3_CONVEYOR_UNLOAD', datatype=193)

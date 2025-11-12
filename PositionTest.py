@@ -4,13 +4,18 @@ from time import sleep
 def PositionTest(plc):
   print("\nRunning test...") 
 
-  for i in range(100):
+  for i in range(80):
     Capability.robot_move(0)  # LOADING
     Capability.robot_ungrip()
     sleep(0.5)
     Capability.robot_grip()
 
     Capability.robot_move(2)  # NEST1
+    Capability.robot_ungrip()
+    sleep(0.5)
+    Capability.robot_grip()
+
+    Capability.robot_move(0)  # LOADING
     Capability.robot_ungrip()
     sleep(0.5)
     Capability.robot_grip()
