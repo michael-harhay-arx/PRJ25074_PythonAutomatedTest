@@ -72,7 +72,7 @@ def robot_grip():
   sleep(0.2)
 
 def robot_move(target):
-  plc.Write('Program:MainProgram.Robot.REQ', target, datatype=199)
+  plc.Write('Program:MainProgram.Robot.REQ', target, datatype=194)
   sleep(0.3)
 
   while True:

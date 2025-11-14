@@ -1,6 +1,15 @@
 import Capability
 from time import sleep
 
+def do_action(nest):
+  # ungrip DUT if at nest
+  if (nest == 0 or nest == 2 or nest == 3):
+    Capability.robot_ungrip()
+    sleep(0.5)
+    Capability.robot_grip()
+  else:
+    sleep(0.5)
+
 def PositionTest(plc):
   print("\nRunning test...") 
 
@@ -11,39 +20,19 @@ def PositionTest(plc):
   for i in range(25):
 
     # Iterate through all combinations of movements
-    for startNest in range(0, 5):
-      for targetNest in range(0, 5):
-          
-          if startNest == targetNest:
-            continue
+    for startNest in range(0, 6):
+      Capability.robot_move(startNest)
+      do_action(startNest)
 
-          else:
-            # go back to start nest
-            Capability.robot_move(startNest)
+      for targetNest in range(startNest + 1, 6):
+        # go to target nest
+        Capability.robot_move(targetNest)
+        do_action(targetNest)
 
-            # ungrip DUT if at nest
-            if (startNest == 0 or startNest == 2 or startNest == 3):
-              Capability.robot_ungrip()
-              sleep(0.5)
-              Capability.robot_grip()
-            else:
-              sleep(0.5)
+        # go back to start nest
+        Capability.robot_move(startNest)
+        do_action(startNest)
 
-            # go to target nest
-            Capability.robot_move(targetNest)
-
-            # ungrip DUT if at nest
-            if (targetNest == 0 or targetNest == 2 or targetNest == 3):
-              Capability.robot_ungrip()
-              sleep(0.5)
-              Capability.robot_grip()
-            else:
-              sleep(0.5)
-
-            # go back to start nest
-            Capability.robot_move(startNest)
-
-  
   Capability.robot_move(5)  # FAIL
   Capability.robot_ungrip()
 
