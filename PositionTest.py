@@ -4,29 +4,74 @@ from time import sleep
 def PositionTest(plc):
   print("\nRunning test...") 
 
-  for i in range(80):
-    Capability.robot_move(0)  # LOADING
-    Capability.robot_ungrip()
-    sleep(0.5)
-    Capability.robot_grip()
+  # grab DUT from loading nest
+  Capability.robot_move(0)
+  Capability.robot_grip()
 
-    Capability.robot_move(2)  # NEST1
-    Capability.robot_ungrip()
-    sleep(0.5)
-    Capability.robot_grip()
+  for i in range(25):
 
-    Capability.robot_move(0)  # LOADING
-    Capability.robot_ungrip()
-    sleep(0.5)
-    Capability.robot_grip()
+    # Iterate through all combinations of movements
+    for startNest in range(0, 5):
+      for targetNest in range(0, 5):
+          
+          if startNest == targetNest:
+            continue
 
-    Capability.robot_move(3)  # NEST2
-    Capability.robot_ungrip()
-    sleep(0.5)
-    Capability.robot_grip()
+          else:
+            # go back to start nest
+            Capability.robot_move(startNest)
 
+            # ungrip DUT if at nest
+            if (startNest == 0 or startNest == 2 or startNest == 3):
+              Capability.robot_ungrip()
+              sleep(0.5)
+              Capability.robot_grip()
+            else:
+              sleep(0.5)
+
+            # go to target nest
+            Capability.robot_move(targetNest)
+
+            # ungrip DUT if at nest
+            if (targetNest == 0 or targetNest == 2 or targetNest == 3):
+              Capability.robot_ungrip()
+              sleep(0.5)
+              Capability.robot_grip()
+            else:
+              sleep(0.5)
+
+            # go back to start nest
+            Capability.robot_move(startNest)
+
+  
   Capability.robot_move(5)  # FAIL
   Capability.robot_ungrip()
+
+
+
+
+
+# OLD --------------------------
+    # Capability.robot_move(0)  # LOADING
+    # Capability.robot_ungrip()
+    # sleep(0.5)
+    # Capability.robot_grip()
+
+    # Capability.robot_move(2)  # NEST1
+    # Capability.robot_ungrip()
+    # sleep(0.5)
+    # Capability.robot_grip()
+
+    # Capability.robot_move(0)  # LOADING
+    # Capability.robot_ungrip()
+    # sleep(0.5)
+    # Capability.robot_grip()
+
+    # Capability.robot_move(3)  # NEST2
+    # Capability.robot_ungrip()
+    # sleep(0.5)
+    # Capability.robot_grip()
+
 
 
 

@@ -9,12 +9,13 @@ from datetime import datetime
 # Config (Update before running)
 # 1) set IP, 2) import correct files, 3) updates test dictionary to include all tests
 plcIP = '192.168.251.1'
-import PositionTest, PathTest, NestEngageTest, BarcodeTest, ConveyorTest
+import PositionTest, PathTest, NestEngageTest, BarcodeTest, ConveyorTest, Initialize
 testsDict = {1 : "PositionTest",
              2 : "PathTest",
              3 : "NestEngageTest",
              4 : "BarcodeTest",
-             5 : "ConveyorTest"}
+             5 : "ConveyorTest",
+             6 : "Initialize"}
 
 plc = PLC()
 plc.IPAddress = plcIP
@@ -71,11 +72,11 @@ def robot_grip():
   sleep(0.2)
 
 def robot_move(target):
-  plc.Write('Program:MainProgram.RobotInputs.iW_TargetPosition', target, datatype=199)
+  plc.Write('Program:MainProgram.Robot.REQ', target, datatype=199)
   sleep(0.3)
 
   while True:
-    inPos = plc.Read('Program:MainProgram.RobotOutputs.ob_InPos', datatype=193)
+    inPos = plc.Read('Program:MainProgram.RobotInputs.ib_InPos', datatype=193)
     if inPos.Value == 1:
       break
     sleep(0.1)
@@ -163,16 +164,20 @@ def conveyor_logic(logName):
 def initialize_station():
   print("Initializing...")
 
-  plc.Write('Program:MainProgram.RobotInputs.ib_Reset', 1, datatype=193)   # Reset flag
+  plc.Write('Program:MainProgram.RobotOutputs.ob_Reset', 1, datatype=193)   # Reset flag
   sleep(1.0)
-  plc.Write('Program:MainProgram.RobotInputs.ib_Reset', 0, datatype=193)
+  plc.Write('Program:MainProgram.RobotOutputs.ob_Reset', 0, datatype=193)
 
-  plc.Write('Program:MainProgram.RobotInputs.ib_Resume', 1, datatype=193)  # Resume flag
+  plc.Write('Program:MainProgram.RobotOutputs.ob_Resume', 1, datatype=193)  # Resume flag
   sleep(1.0)
-  plc.Write('Program:MainProgram.RobotInputs.ib_Resume', 0, datatype=193)
+  plc.Write('Program:MainProgram.RobotOutputs.ob_Resume', 0, datatype=193)
+
+  plc.Write(f'Program:MainProgram.Nest1Cylinder.PB', 0, datatype=193)
+  plc.Write(f'Program:MainProgram.Nest2Cylinder.PB', 0, datatype=193)
+  sleep(1)
 
   robot_ungrip()
-  plc.Write('Program:MainProgram.RobotInputs.ib_Start', 1, datatype=193)   # Start flag
+  plc.Write('Program:MainProgram.RobotOutputs.ob_Start', 1, datatype=193)   # Start flag
   robot_move(0)
 
 
